@@ -51,16 +51,16 @@ InboxOS is built from the ground up to democratize inbox automation: it is open-
 
 ## 2. Key Features
 
-*   ⚙️ **5-Layer AI Pipeline:** A structured flow that processes raw emails through ingestion, parser, intelligence, rules, action, and delivery layers.
-*   🔌 **Multi-Provider Connectors:** Built-in connectors for Gmail, Outlook (Graph API), and generic IMAP servers with full OAuth 2.0 security.
-*   🧠 **AI Classification Engine:** Automatic sorting of incoming mail into 8 distinct categories (`academic`, `job`, `finance`, `meeting`, `OTP`, `newsletter`, `personal`, `support`) with granular priority scoring ($0$–$100$).
-*   📝 **Smart Action Extraction:** Extracts structured entities: deadlines, action items, monetary amounts, and physical/digital locations.
-*   🎛️ **Rules Engine:** User-defined routing conditions with boolean logic, priority evaluation, and active time-of-day windows.
-*   💬 **Multi-Channel Delivery:** Real-time push alerts to WhatsApp, Slack webhooks, Telegram, email digests, and custom WebSockets.
-*   📊 **Real-Time Dashboard:** Dark glassmorphism dashboard built with Next.js 14 and Tailwind CSS, updating live via WebSocket.
-*   🔒 **Privacy-First AI:** Run fully local intelligence models using Ollama (Llama 3/Mistral) or hook up to commercial endpoints (OpenAI / Gemini).
-*   📦 **Plugin SDK (v3 roadmap):** Unified interfaces for building third-party connectors and execution actions.
-*   👥 **Team Inbox (v3 roadmap):** Multi-user support with ticket assignments, audit logs, and response SLA tracking.
+*  **5-Layer AI Pipeline:** A structured flow that processes raw emails through ingestion, parser, intelligence, rules, action, and delivery layers.
+*  **Multi-Provider Connectors:** Built-in connectors for Gmail, Outlook (Graph API), and generic IMAP servers with full OAuth 2.0 security.
+*  **AI Classification Engine:** Automatic sorting of incoming mail into 8 distinct categories (`academic`, `job`, `finance`, `meeting`, `OTP`, `newsletter`, `personal`, `support`) with granular priority scoring ($0$–$100$).
+*  **Smart Action Extraction:** Extracts structured entities: deadlines, action items, monetary amounts, and physical/digital locations.
+*  **Rules Engine:** User-defined routing conditions with boolean logic, priority evaluation, and active time-of-day windows.
+*  **Multi-Channel Delivery:** Real-time push alerts to WhatsApp, Slack webhooks, Telegram, email digests, and custom WebSockets.
+*  **Real-Time Dashboard:** Dark glassmorphism dashboard built with Next.js 14 and Tailwind CSS, updating live via WebSocket.
+*  **Privacy-First AI:** Run fully local intelligence models using Ollama (Llama 3/Mistral) or hook up to commercial endpoints (OpenAI / Gemini).
+*  **Plugin SDK (v3 roadmap):** Unified interfaces for building third-party connectors and execution actions.
+*  **Team Inbox (v3 roadmap):** Multi-user support with ticket assignments, audit logs, and response SLA tracking.
 
 ---
 
