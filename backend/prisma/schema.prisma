@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:../apps/api/inboxos.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -11,9 +11,11 @@ model User {
   id           String        @id @default(uuid())
   email        String        @unique
   passwordHash String
-  createdAt    DateTime      @default(now())
-  emails       Email[]
-  settings     UserSettings?
+  createdAt     DateTime       @default(now())
+  emails        Email[]
+  settings      UserSettings?
+  emailAccounts EmailAccount[]
+  webhooks      WebhookEndpoint[]
 }
 
 model UserSettings {
@@ -52,6 +54,10 @@ model Email {
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
   actionItems ActionItem[]
   embedding String?
+
+  @@index([userId])
+  @@index([threadId])
+  @@index([createdAt])
 }
 
 model ActionItem {
@@ -64,3 +70,34 @@ model ActionItem {
   email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
 }
 
+model EmailAccount {
+  id              String    @id @default(uuid())
+  provider        String    // 'gmail', 'outlook', 'imap'
+  emailAddress    String
+  encryptedTokens String    // Encrypted refresh & access tokens
+  syncState       String    @default("connected")
+  lastSyncAt      DateTime?
+  lastMessageId   String?
+  smtpHost        String?
+  smtpPort        Int?
+  createdAt       DateTime  @default(now())
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, provider, emailAddress])
+  @@map("email_accounts")
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(uuid())
+  targetUrl String
+  events    String   // JSON array stored as a string: '["email.received","action.created"]'
+  secret    String   // HMAC signing secret for payload verification
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_endpoints")
+}

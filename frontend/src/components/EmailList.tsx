@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmailRow, type EmailData } from './EmailRow';
 import { EmailSkeletonList } from './EmailSkeleton';
@@ -11,8 +11,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { EmailViewer } from './EmailViewer';
+import { EmptyState } from './EmptyState';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // Comprehensive mock data list to fall back on if backend is down/missing endpoint
 const FALLBACK_MOCK_EMAILS: EmailData[] = [
@@ -183,6 +184,17 @@ const FALLBACK_MOCK_EMAILS: EmailData[] = [
   }
 ];
 
+const CATEGORIES = [
+  { id: 'all', label: 'All Ingests' },
+  { id: 'urgent', label: 'Urgent' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'job', label: 'Jobs' },
+  { id: 'otp', label: 'Security (OTP)' },
+  { id: 'meeting', label: 'Syncs' },
+  { id: 'newsletter', label: 'Newsletters' },
+  { id: 'academic', label: 'Academic' },
+];
+
 export const EmailList: React.FC = () => {
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -212,7 +224,15 @@ export const EmailList: React.FC = () => {
       if (!response.ok) {
         throw new Error('API Endpoint not available');
       }
-      return response.json();
+      
+      const json = await response.json();
+      if (json && typeof json === 'object' && 'emails' in json && Array.isArray(json.emails)) {
+        return json.emails;
+      }
+      if (Array.isArray(json)) {
+        return json;
+      }
+      throw new Error('Invalid API response format');
     },
     // Fail silently to mock data fallback so frontend is functional out of the box
     gcTime: 1000 * 60 * 10,
@@ -222,65 +242,69 @@ export const EmailList: React.FC = () => {
   // Fallback to mock data if API fails
   const emailsList = data || FALLBACK_MOCK_EMAILS;
 
+  // Click handler for email selection (passed to EmailRow)
+  const handleSelectEmail = useCallback((id: string) => {
+    setSelectedEmailId(id);
+  }, []);
+
+  // Back to list click handler (passed to EmailViewer)
+  const handleBackToList = useCallback(() => {
+    setSelectedEmailId(null);
+  }, []);
+
   // Intercept rendering if an email is selected
   if (selectedEmailId) {
     return (
       <EmailViewer 
         emailId={selectedEmailId} 
-        onBack={() => setSelectedEmailId(null)} 
+        onBack={handleBackToList} 
       />
     );
   }
 
   // Filter local data (Search & Tabs)
-  const filteredEmails = emailsList.filter(email => {
-    // 1. Tab category filter
-    const matchesCategory = 
-      categoryFilter === 'all' || 
-      (email.analysis?.category || email.category || 'personal').toLowerCase() === categoryFilter.toLowerCase();
-    
-    // 2. Search query filter
-    const subjectMatches = email.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const senderMatches = email.sender.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (email.sender_name || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const summaryMatches = (email.analysis?.summary || email.body_text || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesSearch = subjectMatches || senderMatches || summaryMatches;
+  const filteredEmails = useMemo(() => {
+    return emailsList.filter(email => {
+      // 1. Tab category filter
+      const matchesCategory = 
+        categoryFilter === 'all' || 
+        (email.analysis?.category || email.category || 'personal').toLowerCase() === categoryFilter.toLowerCase();
+      
+      // 2. Search query filter
+      const subjectMatches = email.subject.toLowerCase().includes(searchQuery.toLowerCase());
+      const senderMatches = email.sender.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (email.sender_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const summaryMatches = (email.analysis?.summary || email.body_text || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesSearch = subjectMatches || senderMatches || summaryMatches;
 
-    return matchesCategory && matchesSearch;
-  });
+      return matchesCategory && matchesSearch;
+    });
+  }, [emailsList, categoryFilter, searchQuery]);
 
   // Paging computations
   const totalItems = filteredEmails.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(totalItems / pageSize));
+  }, [totalItems, pageSize]);
   
   // Slice current page records
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
-  const paginatedEmails = filteredEmails.slice(startIndex, endIndex);
+  const paginatedEmails = useMemo(() => {
+    return filteredEmails.slice(startIndex, endIndex);
+  }, [filteredEmails, startIndex, endIndex]);
 
-  // Category tab definitions
-  const categories = [
-    { id: 'all', label: 'All Ingests' },
-    { id: 'urgent', label: 'Urgent' },
-    { id: 'finance', label: 'Finance' },
-    { id: 'job', label: 'Jobs' },
-    { id: 'otp', label: 'Security (OTP)' },
-    { id: 'meeting', label: 'Syncs' },
-    { id: 'newsletter', label: 'Newsletters' },
-    { id: 'academic', label: 'Academic' },
-  ];
-
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
-  };
+  }, [totalPages]);
 
-  const handleCategoryChange = (catId: string) => {
+  const handleCategoryChange = useCallback((catId: string) => {
     setCategoryFilter(catId);
     setCurrentPage(1); // Reset page on category filter change
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -290,7 +314,7 @@ export const EmailList: React.FC = () => {
         
         {/* Horizontal Category Tabs */}
         <div className="flex flex-wrap gap-2 overflow-x-auto w-full xl:w-auto pb-1 xl:pb-0 scrollbar-none">
-          {categories.map((cat) => {
+          {CATEGORIES.map((cat) => {
             const isActive = categoryFilter === cat.id;
             return (
               <button
@@ -328,6 +352,7 @@ export const EmailList: React.FC = () => {
             onClick={() => refetch()}
             disabled={isLoading || isFetching}
             title="Refresh Ingests"
+            aria-label="Refresh Ingests"
             className="p-3 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 shrink-0"
           >
             <RefreshCw size={14} className={`${isLoading || isFetching ? 'animate-spin' : ''}`} />
@@ -354,15 +379,11 @@ export const EmailList: React.FC = () => {
           </button>
         </div>
       ) : paginatedEmails.length === 0 ? (
-        <div className="glass rounded-2xl p-12 border border-white/5 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
-            <Inbox size={20} />
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white">Zero Mail Load</h4>
-            <p className="text-xs text-gray-400 mt-1">No emails match the category or filter query.</p>
-          </div>
-        </div>
+        <EmptyState
+          title="Zero Mail Load"
+          description="No emails match the category or filter query."
+          icon={Inbox}
+        />
       ) : (
         <div className="space-y-3">
           {/* Email row renders */}
@@ -370,7 +391,7 @@ export const EmailList: React.FC = () => {
             <EmailRow 
               key={email.id} 
               email={email} 
-              onClick={() => setSelectedEmailId(email.id)}
+              onClick={handleSelectEmail}
             />
           ))}
         </div>
@@ -418,6 +439,7 @@ export const EmailList: React.FC = () => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
+                aria-label="Previous page"
                 className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
               >
                 <ChevronLeft size={14} />
@@ -433,6 +455,7 @@ export const EmailList: React.FC = () => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
+                aria-label="Next page"
                 className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
               >
                 <ChevronRight size={14} />
