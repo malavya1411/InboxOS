@@ -11,6 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { EmailViewer } from './EmailViewer';
+import { EmptyState } from './EmptyState';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -362,15 +363,11 @@ export const EmailList: React.FC = () => {
           </button>
         </div>
       ) : paginatedEmails.length === 0 ? (
-        <div className="glass rounded-2xl p-12 border border-white/5 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
-            <Inbox size={20} />
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white">Zero Mail Load</h4>
-            <p className="text-xs text-gray-400 mt-1">No emails match the category or filter query.</p>
-          </div>
-        </div>
+        <EmptyState
+          title="Zero Mail Load"
+          description="No emails match the category or filter query."
+          icon={Inbox}
+        />
       ) : (
         <div className="space-y-3">
           {/* Email row renders */}
